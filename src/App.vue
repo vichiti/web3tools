@@ -1,17 +1,16 @@
 <template>
   <div id="app">
-    <HomePage />
+    <nav>
+      <router-link to="/">Home (MetaMask)</router-link> |
+      <router-link to="/hashpack">Hashpack Page</router-link>
+    </nav>
+    <router-view />
   </div>
 </template>
 
 <script>
-import HomePage from './components/Home.vue';
-
 export default {
   name: 'App',
-  components: {
-    HomePage,
-  },
 };
 </script>
 
@@ -20,5 +19,12 @@ export default {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+nav {
+  padding: 10px;
+  text-align: center;
+}
+nav a {
+  margin: 0 10px;
 }
 </style>
