@@ -28,29 +28,42 @@ export default {
       appMetadata: {
         name: 'My Vue App',
         description: 'A Vue 3 app with Hashpack integration',
-        icon: 'https://example.com/icon.png', // Replace with your app icon URL
+        icon: 'https://via.placeholder.com/150', // Use a placeholder icon
       },
     };
   },
   methods: {
     async connectHashpack() {
       try {
+        // Check if Hashpack is available
+        if (!window.hashconnect) {
+          this.errorMessage = 'Hashpack extension not detected. Please install it.';
+          return;
+        }
+
         // Initialize Hashconnect if not already done
         if (!this.hashconnect) {
           this.hashconnect = new HashConnect(true); // Debug mode on
+          console.log('Initializing Hashconnect...');
           const initData = await this.hashconnect.init(this.appMetadata, 'testnet');
+          console.log('Hashconnect initialized with topic:', initData.topic);
           this.hashconnectTopic = initData.topic;
 
           // Pairing event listener
           this.hashconnect.pairingEvent.once((pairingData) => {
-            this.accountId = pairingData.accountIds[0];
-            this.isConnected = true;
-            this.errorMessage = null;
-            console.log('Connected to Hashpack with account:', this.accountId);
+            if (pairingData?.accountIds?.length > 0) {
+              this.accountId = pairingData.accountIds[0];
+              this.isConnected = true;
+              this.errorMessage = null;
+              console.log('Paired with Hashpack, account:', this.accountId);
+            } else {
+              this.errorMessage = 'No accounts found in pairing data.';
+            }
           });
 
           // Connection status listener
           this.hashconnect.connectionStatusChangeEvent.on((status) => {
+            console.log('Connection status changed:', status);
             this.isConnected = status === 'Connected';
             if (!this.isConnected) {
               this.accountId = null;
@@ -59,23 +72,27 @@ export default {
           });
         }
 
-        // Open pairing modal or connect
-        await this.hashconnect.connect();
+        // Attempt to connect
+        console.log('Attempting to connect to Hashpack...');
+        await this.hashconnect.connect(this.hashconnectTopic);
         const pairingString = this.hashconnect.generatePairingString({
           topic: this.hashconnectTopic,
           network: 'testnet',
         });
-        console.log('Pairing String (for manual pairing):', pairingString);
-        this.hashconnect.findLocalWallets(); // Trigger Hashpack detection
+        console.log('Pairing String:', pairingString);
+
+        // Trigger wallet detection
+        this.hashconnect.findLocalWallets();
       } catch (error) {
-        // Handle common errors
-        if (error.message.includes('No wallet found')) {
-          this.errorMessage = 'Hashpack is not installed. Please install it.';
-        } else if (error.message.includes('User rejected')) {
+        console.error('Hashconnect error:', error);
+        if (error.message?.includes('No wallet found')) {
+          this.errorMessage = 'Hashpack is not installed or not responding.';
+        } else if (error.message?.includes('User rejected')) {
           this.errorMessage = 'User rejected the pairing request.';
+        } else if (error.message?.includes('undefined')) {
+          this.errorMessage = 'Hashconnect failed to initialize properly. Check console for details.';
         } else {
-          this.errorMessage = 'An unexpected error occurred. Please try again.';
-          console.error(error);
+          this.errorMessage = 'An unexpected error occurred: ' + error.message;
         }
       }
     },
@@ -91,10 +108,11 @@ export default {
     },
   },
   mounted() {
-    // Check if already paired on page load
-    if (this.hashconnect && this.hashconnect.hcData.accountIds?.length > 0) {
+    // Check for existing connection
+    if (this.hashconnect?.hcData?.accountIds?.length > 0) {
       this.isConnected = true;
       this.accountId = this.hashconnect.hcData.accountIds[0];
+      console.log('Existing connection found:', this.accountId);
     }
   },
   beforeUnmount() {
@@ -102,6 +120,7 @@ export default {
     if (this.hashconnect) {
       this.hashconnect.pairingEvent.off();
       this.hashconnect.connectionStatusChangeEvent.off();
+      console.log('Cleaned up Hashconnect listeners');
     }
   },
 };
