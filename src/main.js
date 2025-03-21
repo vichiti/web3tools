@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
 import AuthPage from './components/Auth.vue';
+import MenuPage from './components/Menu.vue';
 import HomePage from './components/Home.vue';
 import HashpackPage from './components/HashpackPage.vue';
 import CreateToken from './components/CreateToken.vue';
@@ -17,26 +18,13 @@ const vuetify = createVuetify({
   components,
   directives,
   theme: {
-    defaultTheme: 'light',
-    themes: {
-      light: {
-        colors: {
-          primary: '#009688', // Teal
-          secondary: '#673AB7', // Deep Purple
-          accent: '#FF9800', // Orange
-          error: '#F44336',
-          info: '#2196F3',
-          success: '#4CAF50',
-          warning: '#FFC107',
-          background: '#FAFAFA', // Light grey
-        },
-      },
-    },
+    defaultTheme: 'light', // Default Material Design light theme
   },
 });
 
 const routes = [
   { path: '/auth', component: AuthPage },
+  { path: '/menu', component: MenuPage },
   { path: '/', component: HomePage },
   { path: '/hashpack', component: HashpackPage },
   { path: '/create-token', component: CreateToken },

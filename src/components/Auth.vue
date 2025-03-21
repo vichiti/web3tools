@@ -1,27 +1,29 @@
 <template>
-  <v-container class="auth-container">
-    <v-card elevation="6" class="pa-6 mx-auto modern-card" max-width="400">
-      <v-card-title class="text-h5 primary--text font-weight-bold justify-center">
-        Welcome
-      </v-card-title>
-      <v-card-text class="text-center">
-        <p class="mb-4 subtitle-1">Connect your MetaMask wallet to get started.</p>
-        <v-btn
-          color="primary"
-          variant="elevated"
-          :loading="isConnecting"
-          :disabled="isConnected"
-          @click="connectMetaMask"
-          block
-          class="mb-4"
-        >
-          <v-icon left>mdi-wallet</v-icon>
-          {{ isConnected ? 'Connected' : 'Login with MetaMask' }}
-        </v-btn>
-        <p v-if="account" class="success--text">Connected: {{ account }}</p>
-        <p v-if="errorMessage" class="error--text mt-2">{{ errorMessage }}</p>
-      </v-card-text>
-    </v-card>
+  <v-container fluid class="fill-height">
+    <v-row align="center" justify="center">
+      <v-col cols="12" sm="8" md="4">
+        <v-card elevation="2" class="pa-6">
+          <v-card-title class="text-h6">Login with MetaMask</v-card-title>
+          <v-card-text>
+            <p>Connect your wallet to access restricted features.</p>
+            <v-btn
+              color="primary"
+              :loading="isConnecting"
+              :disabled="isConnected"
+              @click="connectMetaMask"
+              block
+            >
+              {{ isConnected ? 'Connected' : 'Connect MetaMask' }}
+            </v-btn>
+            <p v-if="account" class="mt-4">Connected: {{ account }}</p>
+            <p v-if="errorMessage" class="mt-4 red--text">{{ errorMessage }}</p>
+          </v-card-text>
+          <v-card-actions v-if="isConnected">
+            <v-btn to="/" text>Go to Home</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-col>
+    </v-row>
   </v-container>
 </template>
 
@@ -66,21 +68,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.auth-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background: #FAFAFA;
-}
-.modern-card {
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-.v-btn {
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-</style>

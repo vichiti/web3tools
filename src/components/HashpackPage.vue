@@ -1,15 +1,19 @@
 <template>
-  <v-container class="modern-container">
-    <v-card elevation="6" class="pa-6 modern-card">
-      <v-card-title class="text-h5 secondary--text font-weight-bold">Hashpack</v-card-title>
-      <v-card-text>
-        <p v-if="account" class="subtitle-1">Connected: {{ account }}</p>
-        <v-btn color="success" variant="elevated" @click="simpleAlert" class="mr-4">Simple Alert</v-btn>
-        <v-btn color="info" variant="elevated" @click="loggedInAlert" :disabled="!isConnected">
-          Logged-In Alert
-        </v-btn>
-      </v-card-text>
-    </v-card>
+  <v-container fluid class="fill-height">
+    <v-row align="center" justify="center">
+      <v-col cols="12" sm="8" md="6">
+        <v-card elevation="2" class="pa-6">
+          <v-card-title class="text-h6">Hashpack Page</v-card-title>
+          <v-card-text>
+            <p v-if="account">Connected: {{ account }}</p>
+            <v-btn color="primary" @click="simpleAlert" class="mr-4">Simple Alert</v-btn>
+            <v-btn color="primary" outlined @click="loggedInAlert" :disabled="!isConnected">
+              Logged-In Alert
+            </v-btn>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
   </v-container>
 </template>
 
@@ -34,21 +38,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.modern-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
-.modern-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-.v-btn {
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-</style>

@@ -12,6 +12,7 @@
     "@hashgraph/sdk": "^2.61.0",
     "@mdi/font": "^7.4.47",
     "hashconnect": "^3.0.13",
+    "vite-plugin-node-polyfills": "^0.23.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0",
     "vuetify": "^3.7.18"
