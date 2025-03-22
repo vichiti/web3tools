@@ -1,29 +1,19 @@
 <template>
   <v-app>
-    <v-app-bar app color="primary" dark>
-      <v-toolbar-title>My App</v-toolbar-title>
-      <v-spacer />
-      <v-btn to="/menu" icon>
-        <v-icon>mdi-menu</v-icon>
-      </v-btn>
-      <v-btn to="/auth" text :disabled="isConnected">
-        {{ isConnected ? 'Connected' : 'Login' }}
-      </v-btn>
-    </v-app-bar>
-
+    <nav-bar :is-connected="isConnected" :account="account" @login="handleLogin" />
     <v-main>
-      <router-view v-slot="{ Component }">
-        <component :is="Component" :is-connected="isConnected" :account="account" @login="handleLogin" />
-      </router-view>
+      <router-view :is-connected="isConnected" :account="account" @login="handleLogin" />
     </v-main>
   </v-app>
 </template>
 
 <script>
 import { ethers } from 'ethers';
+import NavBar from './components/NavBar.vue';
 
 export default {
   name: 'App',
+  components: { NavBar },
   data() {
     return {
       isConnected: false,
@@ -33,7 +23,6 @@ export default {
   async mounted() {
     await this.checkMetaMaskConnection();
     if (window.ethereum) {
-      // Listen for account changes
       window.ethereum.on('accountsChanged', this.handleAccountsChanged);
       window.ethereum.on('chainChanged', this.handleChainChanged);
     }
@@ -46,47 +35,31 @@ export default {
   },
   methods: {
     async checkMetaMaskConnection() {
-      if (!window.ethereum) {
-        console.log('MetaMask not detected');
-        return;
-      }
-
+      if (!window.ethereum) return;
       try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await provider.send('eth_accounts', []);
         if (accounts.length > 0) {
           this.account = accounts[0];
           this.isConnected = true;
-          console.log('Initial MetaMask connection detected:', this.account);
-        } else {
-          console.log('No accounts connected on load');
+          console.log('Initial connection:', this.account);
         }
       } catch (error) {
-        console.error('Error checking MetaMask connection:', error);
+        console.error('Check connection failed:', error);
       }
     },
-
     handleLogin({ isConnected, account }) {
       this.isConnected = isConnected;
       this.account = account;
-      console.log('Login event received:', { isConnected, account });
+      console.log('Login event:', { isConnected, account });
     },
-
     handleAccountsChanged(accounts) {
-      if (accounts.length > 0) {
-        this.isConnected = true;
-        this.account = accounts[0];
-        console.log('Accounts changed:', this.account);
-      } else {
-        this.isConnected = false;
-        this.account = null;
-        console.log('MetaMask disconnected');
-      }
+      this.isConnected = accounts.length > 0;
+      this.account = accounts.length > 0 ? accounts[0] : null;
+      console.log('Accounts changed:', this.account);
     },
-
     handleChainChanged(chainId) {
-      console.log('Chain changed to:', chainId);
-      // Optionally recheck connection if needed
+      console.log('Chain changed:', chainId);
       this.checkMetaMaskConnection();
     },
   },
