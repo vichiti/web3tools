@@ -20,6 +20,8 @@
 </template>
 
 <script>
+import { ethers } from 'ethers';
+
 export default {
   name: 'App',
   data() {
@@ -28,17 +30,65 @@ export default {
       account: null,
     };
   },
+  async mounted() {
+    await this.checkMetaMaskConnection();
+    if (window.ethereum) {
+      // Listen for account changes
+      window.ethereum.on('accountsChanged', this.handleAccountsChanged);
+      window.ethereum.on('chainChanged', this.handleChainChanged);
+    }
+  },
+  beforeUnmount() {
+    if (window.ethereum) {
+      window.ethereum.removeListener('accountsChanged', this.handleAccountsChanged);
+      window.ethereum.removeListener('chainChanged', this.handleChainChanged);
+    }
+  },
   methods: {
+    async checkMetaMaskConnection() {
+      if (!window.ethereum) {
+        console.log('MetaMask not detected');
+        return;
+      }
+
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send('eth_accounts', []);
+        if (accounts.length > 0) {
+          this.account = accounts[0];
+          this.isConnected = true;
+          console.log('Initial MetaMask connection detected:', this.account);
+        } else {
+          console.log('No accounts connected on load');
+        }
+      } catch (error) {
+        console.error('Error checking MetaMask connection:', error);
+      }
+    },
+
     handleLogin({ isConnected, account }) {
       this.isConnected = isConnected;
       this.account = account;
+      console.log('Login event received:', { isConnected, account });
     },
-  },
-  mounted() {
-    if (window.ethereum && window.ethereum.selectedAddress) {
-      this.isConnected = true;
-      this.account = window.ethereum.selectedAddress;
-    }
+
+    handleAccountsChanged(accounts) {
+      if (accounts.length > 0) {
+        this.isConnected = true;
+        this.account = accounts[0];
+        console.log('Accounts changed:', this.account);
+      } else {
+        this.isConnected = false;
+        this.account = null;
+        console.log('MetaMask disconnected');
+      }
+    },
+
+    handleChainChanged(chainId) {
+      console.log('Chain changed to:', chainId);
+      // Optionally recheck connection if needed
+      this.checkMetaMaskConnection();
+    },
   },
 };
 </script>

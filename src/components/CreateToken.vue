@@ -6,20 +6,8 @@
           <v-card-title class="text-h6">Create Token</v-card-title>
           <v-card-text>
             <!-- Connection Status -->
-            <p v-if="!isConnected">Please connect MetaMask to start.</p>
+            <p v-if="!isConnected">Please <router-link to="/auth">connect MetaMask</router-link> to start.</p>
             <p v-if="isConnected">Connected: {{ account }}</p>
-
-            <!-- Connect Button -->
-            <v-btn
-              v-if="!isConnected"
-              color="primary"
-              @click="connectMetaMask"
-              :loading="isConnecting"
-              block
-              class="mb-4"
-            >
-              Connect MetaMask
-            </v-btn>
 
             <!-- Token Form -->
             <v-form v-if="isConnected">
@@ -61,77 +49,55 @@ import { ethers } from 'ethers';
 
 export default {
   name: 'CreateToken',
+  props: {
+    isConnected: {
+      type: Boolean,
+      default: false,
+    },
+    account: {
+      type: String,
+      default: '',
+    },
+  },
   data() {
     return {
-      isConnected: false,         // Tracks MetaMask connection
-      isConnecting: false,        // Loading state for connection
-      account: '',               // MetaMask EVM address
-      tokenName: '',             // Token name
-      tokenSymbol: '',           // Token symbol
-      initialSupply: 1000,       // Default supply
-      tokenId: null,             // Resulting token ID
-      errorMessage: null,        // Error feedback
-      isCreating: false,         // Loading state for minting
-      signer: null,              // Ethers.js signer
+      tokenName: '',
+      tokenSymbol: '',
+      initialSupply: 1000,
+      tokenId: null,
+      errorMessage: null,
+      isCreating: false,
+      signer: null,
     };
   },
-  methods: {
-    async connectMetaMask() {
-      if (typeof window.ethereum === 'undefined') {
-        this.errorMessage = 'MetaMask is not installed. Please install it.';
-        return;
+  async mounted() {
+    // Initialize signer if connected
+    if (this.isConnected && this.account) {
+      await this.initializeSigner();
+    }
+  },
+  watch: {
+    // React to prop changes from auth page
+    isConnected(newVal) {
+      if (newVal && this.account) {
+        this.initializeSigner();
       }
-
-      this.isConnecting = true;
+    },
+  },
+  methods: {
+    async initializeSigner() {
       try {
-        // Request account access
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         this.signer = provider.getSigner();
-        this.account = await this.signer.getAddress();
-
-        // Ensure Hedera Testnet (Chain ID 296)
-        const network = await provider.getNetwork();
-        if (network.chainId !== 296) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0x128' }], // 296 in hex
-            });
-          } catch (switchError) {
-            if (switchError.code === 4902) {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId: '0x128',
-                  chainName: 'Hedera Testnet',
-                  rpcUrls: ['https://testnet.hashio.io/api'],
-                  nativeCurrency: { name: 'HBAR', symbol: 'HBAR', decimals: 18 },
-                  blockExplorerUrls: ['https://hashscan.io/testnet']
-                }],
-              });
-            } else {
-              throw switchError;
-            }
-          }
-        }
-
-        // Verify Hedera Wallet Snap
-        const snaps = await window.ethereum.request({ method: 'wallet_getSnaps' });
-        if (!snaps['npm:@hashgraph/hedera-wallet-snap']) {
-          this.errorMessage = 'Hedera Wallet Snap not installed. Get it from snaps.metamask.io.';
-          this.isConnecting = false;
+        const connectedAccount = await this.signer.getAddress();
+        if (connectedAccount.toLowerCase() !== this.account.toLowerCase()) {
+          this.errorMessage = 'Account mismatch. Please ensure the correct account is selected in MetaMask.';
           return;
         }
-
-        this.isConnected = true;
-        this.errorMessage = null;
-        this.$emit('update:isConnected', true); // Update parent prop if needed
-        this.$emit('update:account', this.account);
+        console.log('Signer initialized for account:', this.account);
       } catch (error) {
-        this.errorMessage = `Failed to connect: ${error.message}`;
-      } finally {
-        this.isConnecting = false;
+        this.errorMessage = `Failed to initialize signer: ${error.message}`;
+        console.error(error);
       }
     },
 
@@ -146,24 +112,38 @@ export default {
       this.tokenId = null;
 
       try {
-        // Prepare HTS token parameters for Snap
+        // Ensure Hedera Testnet
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const network = await provider.getNetwork();
+        if (network.chainId !== 296) {
+          this.errorMessage = 'Please switch to Hedera Testnet (Chain ID 296) in MetaMask.';
+          this.isCreating = false;
+          return;
+        }
+
+        // Verify Hedera Snap
+        const snaps = await window.ethereum.request({ method: 'wallet_getSnaps' });
+        if (!snaps['npm:@hashgraph/hedera-wallet-snap']) {
+          this.errorMessage = 'Hedera Wallet Snap not installed. Get it from snaps.metamask.io.';
+          this.isCreating = false;
+          return;
+        }
+
         const tokenParams = {
           name: this.tokenName,
           symbol: this.tokenSymbol,
-          initialSupply: this.initialSupply * 10**8, // Scale for Hedera's 8 decimals
+          initialSupply: this.initialSupply * 10**8, // Hedera uses 8 decimals
           decimals: 8,
           memo: 'Carbon Offset Token',
           treasury: this.account,
         };
 
-        // Mint token via Hedera Wallet Snap
         const response = await window.ethereum.request({
           method: 'hedera_createToken',
           params: [tokenParams],
         });
 
-        // Extract token ID (assuming response format; adjust per Snap docs)
-        this.tokenId = response.tokenId || `0.0.${Math.floor(Math.random() * 1000000)}`; // Fallback
+        this.tokenId = response.tokenId || `0.0.${Math.floor(Math.random() * 1000000)}`;
         console.log('Token created:', this.tokenId);
       } catch (error) {
         this.errorMessage = error.message.includes('INSUFFICIENT')
