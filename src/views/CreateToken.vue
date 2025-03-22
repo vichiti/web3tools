@@ -40,8 +40,8 @@ export default {
   },
   data() {
     return {
-      tokenName: '',
-      tokenSymbol: '',
+      tokenName: 'Tree Token',
+      tokenSymbol: 'TT',
       initialSupply: 1000,
       tokenId: null,
       errorMessage: null,
