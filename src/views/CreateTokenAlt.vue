@@ -1,3 +1,8 @@
+
+
+
+
+
 <template>
   <v-container fluid class="fill-height">
     <v-row align="center" justify="center">
@@ -45,6 +50,7 @@ import { ethers } from 'ethers';
 //     tokenAddress = IHTS(htsPrecompile).createFungibleToken(name, symbol, initialSupply);
 //   }
 // }
+// Placeholder bytecode (simplified HTS token factory)
 const HTS_TOKEN_BYTECODE = "608060405234801561001057600080fd5b506040516103e73803806103e7833981810160405281019061003291906100a8565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff166000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506040517ff8e8f8c5000000000000000000000000000000000000000000000000000000008152600401606060405180830381865afa1580156100c7573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906100eb9190610138565b80600160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505050505061017f565b6000815190506100a281610165565b92915050565b6000806000606084860312156100c1576100c061015b565b5b60006100cf86828701610093565b93505060206100e086828701610093565b92505060406100f1868287016100ff565b9150509250925092565b6000815190506101108161017b565b92915050565b60006020828403121561012c5761012b61015b565b5b600061013a84828501610101565b91505092915050565b6000602082840312156101505761014f61015b565b5b600061015e84828501610093565b91505092915050565b600080fd5b6000601f19601f8301169050919050565b6101718161015b565b811461017c57600080fd5b50565b6101888161015b565b811461019357600080fd5b5056fea2646970667358221220f8e8f8c5e8e8f8c5e8e8f8c5e8e8f8c5e8e8f8c5e8e8f8c5e8e8f8c5e8e8f8c5e64736f6c634300080d0033";
 
 export default {
@@ -66,6 +72,7 @@ export default {
   },
   watch: {
     isConnected(newVal) {
+      console.log('isConnected changed to:', newVal, 'Account:', this.account);
       if (newVal && this.account) {
         this.initializeSigner();
       } else {
@@ -114,7 +121,9 @@ export default {
           return;
         }
 
-        // Encode constructor arguments
+        const balance = await provider.getBalance(this.account);
+        console.log('Balance:', ethers.utils.formatEther(balance), 'HBAR');
+
         const abi = [
           "constructor(string memory name, string memory symbol, uint256 initialSupply)"
         ];
@@ -122,10 +131,9 @@ export default {
         const contract = await factory.deploy(
           this.tokenName,
           this.tokenSymbol,
-          ethers.BigNumber.from(this.initialSupply).mul(ethers.BigNumber.from(10).pow(8)) // 8 decimals
+          ethers.BigNumber.from(this.initialSupply).mul(ethers.BigNumber.from(10).pow(8))
         );
 
-        // Wait for deployment
         const receipt = await contract.deployTransaction.wait();
         this.tokenAddress = contract.address;
         console.log('Token deployed at:', this.tokenAddress);

@@ -35,23 +35,28 @@ export default {
   },
   methods: {
     async checkMetaMaskConnection() {
-      if (!window.ethereum) return;
+      if (!window.ethereum) {
+        console.log('MetaMask not detected');
+        return;
+      }
       try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await provider.send('eth_accounts', []);
         if (accounts.length > 0) {
           this.account = accounts[0];
           this.isConnected = true;
-          console.log('Initial connection:', this.account);
+          console.log('Initial connection detected:', this.account);
+        } else {
+          console.log('No accounts connected on load');
         }
       } catch (error) {
-        console.error('Check connection failed:', error);
+        console.error('Connection check failed:', error);
       }
     },
     handleLogin({ isConnected, account }) {
       this.isConnected = isConnected;
       this.account = account;
-      console.log('Login event:', { isConnected, account });
+      console.log('Login event received:', { isConnected, account });
     },
     handleAccountsChanged(accounts) {
       this.isConnected = accounts.length > 0;
@@ -59,7 +64,7 @@ export default {
       console.log('Accounts changed:', this.account);
     },
     handleChainChanged(chainId) {
-      console.log('Chain changed:', chainId);
+      console.log('Chain changed to:', chainId);
       this.checkMetaMaskConnection();
     },
   },

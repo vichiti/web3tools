@@ -12,7 +12,7 @@
               :loading="isConnecting"
               block
             >
-              Connect MetaMask
+              Connect MetaMask (Hedera Testnet)
             </v-btn>
             <p v-if="isConnected" class="mt-4 green--text">Connected: {{ account }}</p>
           </v-card-text>
@@ -41,14 +41,36 @@ export default {
       this.isConnecting = true;
       try {
         if (!window.ethereum) throw new Error('MetaMask not installed');
+
         const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const network = await provider.getNetwork();
+        if (network.chainId !== 296) {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x128' }], // 296 in hex
+          });
+        }
+
         const accounts = await provider.send('eth_requestAccounts', []);
         const account = accounts[0];
-        await provider.send('wallet_switchEthereumChain', [{ chainId: '0x128' }]);
         this.$emit('login', { isConnected: true, account });
-        this.$router.push('/create-token'); // Redirect after login
+        this.$router.push('/create-token-alt'); // Redirect to new page for testing
       } catch (error) {
-        console.error('Auth failed:', error);
+        if (error.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x128',
+              chainName: 'Hedera Testnet',
+              rpcUrls: ['https://testnet.hashio.io/api'],
+              nativeCurrency: { name: 'HBAR', symbolYoga: 'HBAR', decimals: 18 },
+              blockExplorerUrls: ['https://hashscan.io/testnet'],
+            }],
+          });
+          await this.connectMetaMask(); // Retry after adding
+        } else {
+          console.error('Auth failed:', error.message);
+        }
       } finally {
         this.isConnecting = false;
       }
