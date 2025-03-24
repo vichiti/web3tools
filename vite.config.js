@@ -7,4 +7,9 @@ export default defineConfig({
     vue(),
     vuetify({ autoImport: true }),
   ],
+  server: {
+    // Ensure all non-asset routes fallback to index.html
+    historyApiFallback: true,
+    
+  }
 });
