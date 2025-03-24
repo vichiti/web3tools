@@ -11,20 +11,20 @@
         <v-btn
           color="primary"
           class="mb-3"
-          @click="connectMetamask"
-          :disabled="isConnected"
+          @click="connect"
+          :disabled="metaMask.isConnected"
         >
-          {{ isConnected ? 'Connected ✅' : 'Connect MetaMask' }}
+          {{ metaMask.isConnected ? 'Connected ✅' : 'Connect MetaMask' }}
         </v-btn>
 
         <p>
           <strong>Account:</strong>
-          <span>{{ account || 'Not Connected' }}</span>
+          <span>{{ metaMask.account || 'Not Connected' }}</span>
         </p>
 
         <p class="mt-5">
           <strong>Current Value:</strong>
-          <span>{{ value || 'N/A' }}</span>
+          <span>{{ contractStore.value || 'N/A' }}</span>
         </p>
 
         <v-text-field
@@ -35,7 +35,7 @@
           hide-details
         >
           <template v-slot:append>
-            <v-btn color="success" @click="setValue">Set Value</v-btn>
+            <v-btn color="success" @click="setContractValue">Set Value</v-btn>
           </template>
         </v-text-field>
       </v-col>
@@ -44,111 +44,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ethers } from 'ethers'
+import { ref } from 'vue'
+import { useMetaMask } from '../composables/useMetaMask'
+import { useContractStore } from '../stores/contract'
 
-// Contract details
-const contractAddress = "0x401d7bDe9FC1e4E58ce37D3702027fa468a213B4"
-const contractABI = [
-  {
-    "inputs": [{"internalType": "uint256", "name": "_value", "type": "uint256"}],
-    "name": "setValue",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getValue",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "storedValue",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
-]
-
-// Reactive variables
-const account = ref('')
-const value = ref('')
+const metaMask = useMetaMask()
+const contractStore = useContractStore()
 const inputValue = ref('')
-const isConnected = ref(false)
-let provider = null
-let signer = null
-let contract = null
 
-// Connect to MetaMask
-const connectMetamask = async () => {
-  if (typeof window.ethereum === 'undefined') {
-    alert('Please install MetaMask!')
-    return
-  }
-
-  try {
-    await window.ethereum.request({ method: 'eth_requestAccounts' })
-    provider = new ethers.providers.Web3Provider(window.ethereum)
-    signer = provider.getSigner()
-    const accounts = await signer.getAddress()
-    account.value = accounts
-    isConnected.value = true
-
-    // Connect to contract
-    contract = new ethers.Contract(contractAddress, contractABI, signer)
-    await updateValue()
-  } catch (error) {
-    console.error('Connection error:', error)
-    alert('Failed to connect to MetaMask')
+const connect = async () => {
+  const result = await metaMask.connectMetamask()
+  if (result.success) {
+    contractStore.initializeContract(metaMask.getSigner())
+    await contractStore.updateValue()
   }
 }
 
-// Update displayed value
-const updateValue = async () => {
-  if (contract) {
-    try {
-      const currentValue = await contract.getValue()
-      value.value = currentValue.toString()
-    } catch (error) {
-      console.error('Error fetching value:', error)
-    }
-  }
-}
-
-// Set new value
-const setValue = async () => {
-  if (!contract) {
-    alert('Please connect MetaMask first!')
-    return
-  }
-  
-  if (!inputValue.value) {
-    alert('Enter a value!')
-    return
-  }
-
-  try {
-    const tx = await contract.setValue(inputValue.value)
-    console.log('Transaction sent:', tx.hash)
-    await tx.wait()
-    console.log('Transaction confirmed')
-    await updateValue()
+const setContractValue = async () => {
+  const success = await contractStore.setValue(inputValue.value)
+  if (success) {
     inputValue.value = ''
-  } catch (error) {
-    console.error('Transaction error:', error)
-    alert('Failed to set value')
   }
 }
-
-// Check for existing connection on mount
-onMounted(() => {
-  if (window.ethereum && window.ethereum.selectedAddress) {
-    connectMetamask()
-  }
-})
 </script>
 
 <style scoped>
