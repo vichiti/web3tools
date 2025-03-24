@@ -11,8 +11,10 @@
   "dependencies": {
     "@hashgraph/sdk": "^2.61.0",
     "@mdi/font": "^7.4.47",
-    "ethers": "^5.7.2",
+    "ethers": "^5.8.0",
     "hashconnect": "^3.0.13",
+    "pinia": "^3.0.1",
+    "sass": "^1.86.0",
     "vite-plugin-node-polyfills": "^0.23.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0",
