@@ -126,7 +126,8 @@ const updateValue = async () => {
       console.log('Call exception details:', {
         method: error.method,
         data: error.data,
-        reason: error.reason may be missing or corrupted
+        reason: error.reason
+      })
     } else {
       value.value = `Error: ${error.message}`
     }
