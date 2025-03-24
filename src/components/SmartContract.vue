@@ -10,11 +10,20 @@
       <v-col cols="12" md="6">
         <v-btn
           color="primary"
-          class="mb-3"
+          class="mb-3 mr-2"
           @click="connectMetamask"
-          :disabled="metaMask.isConnected"
+          :disabled="isActuallyConnected"
         >
-          {{ metaMask.isConnected ? 'Connected ✅' : 'Connect MetaMask' }}
+          {{ isActuallyConnected ? 'Connected ✅' : 'Connect MetaMask' }}
+        </v-btn>
+
+        <v-btn
+          v-if="isActuallyConnected"
+          color="error"
+          class="mb-3"
+          @click="logout"
+        >
+          Logout
         </v-btn>
 
         <p>
@@ -47,39 +56,67 @@
 import { ref, onMounted } from 'vue'
 import { useMetaMask } from '../composables/useMetaMask'
 import { ethers } from 'ethers'
-
-
-// Contract details from .env
 const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS
 const contractABI = JSON.parse(import.meta.env.VITE_CONTRACT_ABI)
+
 
 // Reactive variables
 const metaMask = useMetaMask()
 const contract = ref(null)
 const value = ref('')
 const inputValue = ref('')
+const isActuallyConnected = ref(false)
 
-// Initialize contract with network check
+// Check actual MetaMask connection status
+const checkMetaMaskConnection = async () => {
+  if (!window.ethereum) {
+    console.log('MetaMask not detected')
+    isActuallyConnected.value = false
+    return false
+  }
+
+  try {
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+    const accounts = await provider.listAccounts()
+    console.log('Connected accounts:', accounts)
+    isActuallyConnected.value = accounts.length > 0
+    if (isActuallyConnected.value) {
+      metaMask.account.value = accounts[0]
+    }
+    return isActuallyConnected.value
+  } catch (error) {
+    console.error('Error checking connection:', error.message)
+    isActuallyConnected.value = false
+    return false
+  }
+}
+
+// Initialize contract
 const initializeContract = async () => {
   try {
     console.log('Initializing MetaMask connection...')
+    if (!await checkMetaMaskConnection()) {
+      await window.ethereum.request({ method: 'eth_requestAccounts' })
+    }
+    
     await metaMask.connect()
     console.log('MetaMask connected, account:', metaMask.account)
 
-    // Check network
     const provider = new ethers.providers.Web3Provider(window.ethereum)
     const network = await provider.getNetwork()
     console.log('Current network:', network)
-    if (network.chainId !== 296) { // Hedera Testnet Chain ID
+    if (network.chainId !== 296) {
       throw new Error('Please switch MetaMask to Hedera Testnet (Chain ID: 296)')
     }
 
     contract.value = metaMask.getContract(contractAddress, contractABI)
     console.log('Contract initialized at:', contractAddress)
     await updateValue()
+    isActuallyConnected.value = true
   } catch (error) {
     console.error('Initialization failed:', error.message)
     alert(`Failed to initialize: ${error.message}`)
+    isActuallyConnected.value = false
   }
 }
 
@@ -88,7 +125,7 @@ const connectMetamask = async () => {
   await initializeContract()
 }
 
-// Update displayed value with detailed error handling
+// Update displayed value
 const updateValue = async () => {
   if (!contract.value) {
     console.log('Contract not initialized yet')
@@ -103,16 +140,7 @@ const updateValue = async () => {
     value.value = currentValue.toString()
   } catch (error) {
     console.error('Error fetching value:', error)
-    if (error.code === 'CALL_EXCEPTION') {
-      value.value = 'Call reverted - check contract state or address'
-      console.log('Call exception details:', {
-        method: error.method,
-        data: error.data,
-        reason: error.reason
-      })
-    } else {
-      value.value = `Error: ${error.message}`
-    }
+    value.value = `Error: ${error.message}`
   }
 }
 
@@ -142,11 +170,24 @@ const setValue = async () => {
   }
 }
 
-// Check for existing connection on mount
+// Logout function
+const logout = () => {
+  console.log('Logging out...')
+  // Reset all reactive variables
+  contract.value = null
+  value.value = ''
+  inputValue.value = ''
+  metaMask.account.value = ''
+  metaMask.isConnected.value = false
+  isActuallyConnected.value = false
+  console.log('All variables reset')
+}
+
+// Check connection on mount
 onMounted(async () => {
   console.log('Component mounted, checking connection...')
-  await metaMask.checkConnection()
-  if (metaMask.isConnected) {
+  const isConnected = await checkMetaMaskConnection()
+  if (isConnected) {
     console.log('Existing connection found, initializing contract...')
     await initializeContract()
   } else {
@@ -167,5 +208,8 @@ onMounted(async () => {
 }
 .mt-5 {
   margin-top: 3rem;
+}
+.mr-2 {
+  margin-right: 0.5rem; /* Space between Connect and Logout buttons */
 }
 </style>
