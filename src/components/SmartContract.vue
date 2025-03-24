@@ -48,31 +48,10 @@ import { ref, onMounted } from 'vue'
 import { useMetaMask } from '../composables/useMetaMask'
 import { ethers } from 'ethers'
 
-// Contract details
-const contractAddress = "0x401d7bDe9FC1e4E58ce37D3702027fa468a213B4" // Verify this address!
-const contractABI = [
-  {
-    "inputs": [{"internalType": "uint256", "name": "_value", "type": "uint256"}],
-    "name": "setValue",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getValue",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "storedValue",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
-]
+
+// Contract details from .env
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS
+const contractABI = JSON.parse(import.meta.env.VITE_CONTRACT_ABI)
 
 // Reactive variables
 const metaMask = useMetaMask()
