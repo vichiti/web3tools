@@ -1,45 +1,52 @@
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { ethers } from 'ethers'
 
 export function useMetaMask() {
-  const isConnected = ref(false)
   const account = ref('')
+  const isConnected = ref(false)
   let provider = null
   let signer = null
 
-  const connectMetamask = async () => {
+  // Connect to MetaMask
+  const connect = async () => {
     if (typeof window.ethereum === 'undefined') {
-      alert('Please install MetaMask!')
-      return { success: false }
+      throw new Error('Please install MetaMask!')
     }
 
     try {
       await window.ethereum.request({ method: 'eth_requestAccounts' })
       provider = new ethers.providers.Web3Provider(window.ethereum)
       signer = provider.getSigner()
-      const address = await signer.getAddress()
-      account.value = address
+      const accounts = await signer.getAddress()
+      account.value = accounts
       isConnected.value = true
-      return { success: true, provider, signer, account: address }
+      return signer
     } catch (error) {
       console.error('Connection error:', error)
-      alert('Failed to connect to MetaMask')
-      return { success: false }
+      throw new Error('Failed to connect to MetaMask')
     }
   }
 
   // Check existing connection
-  onMounted(async () => {
+  const checkConnection = async () => {
     if (window.ethereum && window.ethereum.selectedAddress) {
-      await connectMetamask()
+      await connect()
     }
-  })
+  }
+
+  // Create contract instance
+  const getContract = (contractAddress, contractABI) => {
+    if (!signer) {
+      throw new Error('Please connect MetaMask first!')
+    }
+    return new ethers.Contract(contractAddress, contractABI, signer)
+  }
 
   return {
-    isConnected,
     account,
-    connectMetamask,
-    getProvider: () => provider,
-    getSigner: () => signer
+    isConnected,
+    connect,
+    checkConnection,
+    getContract
   }
 }
